@@ -1,0 +1,84 @@
+name: Quality Monitoring
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Calculate fitness score
+        run: |
+          python -c "
+          from core.fitness import FitnessEvaluator
+          evaluator = FitnessEvaluator()
+          score = evaluator.evaluate()
+          print(f'Performance: {score.performance:.3f}')
+          print(f'Quality: {score.quality:.3f}')
+          print(f'Coverage: {score.coverage:.3f}')
+          print(f'Complexity: {score.complexity:.3f}')
+          print(f'Overall Fitness: {score.overall:.3f}')
+          " > fitness_report.txt
+          cat fitness_report.txt
+      
+      - name: Generate evolution dashboard
+        run: |
+          echo "Evolution Dashboard" > dashboard.md
+          echo "==================" >> dashboard.md
+          echo "" >> dashboard.md
+          if [ -f metrics/evolution_history.json ]; then
+            python -c "
+          import json
+          with open('metrics/evolution_history.json', 'r') as f:
+              history = json.load(f)
+          if history:
+              latest = history[-1]
+              print(f\"Generation: {latest['generation']}\")
+              print(f\"Fitness Score: {latest['fitness_score']:.4f}\")
+              print(f\"Code Quality: {latest['code_quality']:.2f}/100\")
+              print(f\"Last Updated: {latest['timestamp']}\")
+          else:
+              print('No evolution history yet')
+          " >> dashboard.md
+          else
+            echo "No metrics available yet" >> dashboard.md
+          fi
+          cat dashboard.md
+      
+      - name: Commit dashboard
+        run: |
+          git config user.name "AutoEvolve Bot"
+          git config user.email "autoevolve@github-actions"
+          
+          if [ -f dashboard.md ]; then
+            mv dashboard.md DASHBOARD.md
+            git add DASHBOARD.md || true
+            git commit -m "📊 Update evolution dashboard" || echo "No changes to commit"
+            git push || echo "Nothing to push"
+          fi
+      
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports
+          path: |
+            fitness_report.txt
+            dashboard.md

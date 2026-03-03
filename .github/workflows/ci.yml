@@ -1,0 +1,82 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Lint with pylint
+        run: |
+          pip install pylint
+          pylint core/ --disable=all --enable=E,F
+      
+      - name: Run tests
+        run: |
+          pytest tests/ -v --cov=core --cov-report=xml --cov-report=term
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+  
+  quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install radon pylint black isort
+      
+      - name: Check code formatting
+        run: |
+          black --check core/ tests/
+      
+      - name: Check import sorting
+        run: |
+          isort --check-only core/ tests/
+      
+      - name: Calculate complexity
+        run: |
+          radon cc core/ -a -nb
+      
+      - name: Generate quality report
+        run: |
+          pylint core/ --output-format=text > quality_report.txt || true
+          cat quality_report.txt
+      
+      - name: Upload quality report
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report
+          path: quality_report.txt

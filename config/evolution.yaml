@@ -1,0 +1,38 @@
+# AutoEvolve Configuration
+
+# Fitness function weights (must sum to ~1.0)
+fitness_weights:
+  performance: 0.35  # Execution speed and efficiency
+  quality: 0.25      # Code quality and maintainability
+  coverage: 0.20     # Test coverage
+  complexity: 0.20   # Code complexity (lower is better)
+
+# Evolution parameters
+mutation_rate: 0.15           # Probability of mutation
+selection_pressure: 0.7       # How strongly to favor better candidates
+population_size: 10           # Number of candidates per generation
+improvement_threshold: 0.05   # Minimum fitness improvement required
+
+# Analysis settings
+analysis:
+  max_function_length: 50     # Maximum acceptable function length
+  max_parameters: 5           # Maximum acceptable parameters
+  max_complexity: 15          # Maximum cyclomatic complexity
+  min_test_coverage: 80       # Minimum test coverage percentage
+
+# Mutation strategies (enabled/disabled)
+strategies:
+  algorithmic_optimization: true
+  structural_refactoring: true
+  performance_improvement: true
+  readability_enhancement: true
+  parallelization: true
+  caching: true
+  vectorization: true
+
+# Safety settings
+safety:
+  require_tests: true         # Only apply changes if tests pass
+  require_review: false       # Create PR instead of direct commit
+  max_changes_per_cycle: 5    # Maximum number of changes per evolution cycle
+  backup_enabled: true        # Create backup before applying changes
